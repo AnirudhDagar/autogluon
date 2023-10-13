@@ -689,14 +689,27 @@ def infer_problem_type(
     -------
     Inferred problem type
     """
+    # dictionary containing label column name and corresponding problem type
+    problem_types = {}
     if provided_problem_type in [None, CLASSIFICATION]:
-        problem_type = infer_basic_problem_type(y=y_train_data)
-        # trust users' prior knowledge
-        if provided_problem_type == CLASSIFICATION and problem_type == REGRESSION:
-            problem_type = MULTICLASS
+        for col_name in y_train_data.columns:
+            # infer_basic_problem_type function works with pd.Series
+            problem_type = infer_basic_problem_type(y=y_train_data[col_name])
+            # trust users' prior knowledge
+            if provided_problem_type == CLASSIFICATION and problem_type == REGRESSION:
+                problem_type = MULTICLASS
+
+            problem_types[col_name]=problem_type
+
+        import pdb; pdb.set_trace()
+        # assert len(set(problem_types.values())) == 1, ("Mixing problem_types for multi-label is not supported in AutoGluon!")
+        # TODO: CURRENTLY PROBLEM TYPE IS JUST THE LAST COLUMN. NEED TO FIX THAT
+        # BY CONSIDERING ALL TYPES IN THE DICTIONARY AND MAKING A LOSS FUNCTION ACCORDING TO THAT
     else:
         problem_type = provided_problem_type
-
+        for col_name in y_train_data.columns:
+            problem_types[col_name] = problem_type
+    
     return problem_type
 
 

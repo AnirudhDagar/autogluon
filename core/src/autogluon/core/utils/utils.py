@@ -334,32 +334,33 @@ def convert_pred_probas_to_df(pred_proba_list: List[ArrayLike], columns: List[st
     return pred_proba_df
 
 
-def extract_label(data: DataFrame, label: str) -> (DataFrame, Series):
+def extract_label(data: DataFrame, label: List[str]) -> (DataFrame, DataFrame):
     """
-    Extract the label column from a dataset and return X, y.
+    Extract the label column(s) from a dataset and return X, y.
 
     Parameters
     ----------
     data : DataFrame
-        The data containing features and the label column.
-    label : str
-        The label column name.
+        The data containing features and the label column(s).
+    label : list of str
+        The label column name(s).
 
     Returns
     -------
     X, y : (DataFrame, Series)
-        X is the data with the label column dropped.
-        y is the label column as a pd.Series.
+        X is the data with the label column(s) dropped.
+        y is the label column(s) as a pd.DataFrame.
     """
-    if label not in list(data.columns):
-        raise ValueError(f"Provided DataFrame does not contain label column: {label}")
+    for label_name in label:
+        if label_name not in list(data.columns):
+            raise ValueError(f"Provided DataFrame does not contain label column: {label_name}")
     y = data[label].copy()
     X = data.drop(label, axis=1)
     return X, y
 
 
 def generate_train_test_split_combined(
-    data: DataFrame, label: str, problem_type: str, test_size: float = 0.1, random_state: int = 0, min_cls_count_train: int = 1
+    data: DataFrame, label: List[str], problem_type: str, test_size: float = 0.1, random_state: int = 0, min_cls_count_train: int = 1
 ) -> (DataFrame, DataFrame):
     """
     Generate a train test split from a DataFrame that contains the label column.
@@ -368,8 +369,8 @@ def generate_train_test_split_combined(
     ----------
     data : DataFrame
         DataFrame containing the features plus the label column to split into train and test sets.
-    label : str
-        The label column name.
+    label : List[str]
+        List of all the label column names if Multi label problem or List of single label column name.
         Used for stratification and to ensure all classes in multiclass classification are preserved in train data.
     problem_type : str
         The problem_type the label is used for. Determines if stratification is used.
@@ -400,8 +401,8 @@ def generate_train_test_split_combined(
 
 
 def generate_train_test_split(
-    X: DataFrame, y: Series, problem_type: str, test_size: Union[float, int] = 0.1, random_state=0, min_cls_count_train=1
-) -> Tuple[DataFrame, DataFrame, Series, Series]:
+    X: DataFrame, y: DataFrame, problem_type: str, test_size: Union[float, int] = 0.1, random_state=0, min_cls_count_train=1
+) -> Tuple[DataFrame, DataFrame, DataFrame, DataFrame]:
     """
     Generate a train test split from input X, y.
     If you have a combined X, y DataFrame, refer to `generate_train_test_split_combined` instead.
@@ -410,8 +411,8 @@ def generate_train_test_split(
     ----------
     X : DataFrame
         pd.DataFrame containing the features minus the label column to split into train and test sets.
-    y : Series
-        pd.Series containing the label with matching indices to X.
+    y : DataFrame
+        pd.DataFrame containing the label(s) with matching indices to X.
         Used for stratification and to ensure all classes in multiclass classification are preserved in train data.
     problem_type : str
         The problem_type the label is used for. Determines if stratification is used.
@@ -432,7 +433,7 @@ def generate_train_test_split(
 
     Returns
     -------
-    X_train, X_test, y_train, y_test : (DataFrame, DataFrame, Series, Series)
+    X_train, X_test, y_train, y_test : (DataFrame, DataFrame, DataFrame, DataFrame)
         The train_data and test_data after performing the split, separated into X and y.
 
     """
@@ -446,6 +447,7 @@ def generate_train_test_split(
 
     X_split = X
     y_split = y
+    import pdb; pdb.set_trace()
     if problem_type in [BINARY, MULTICLASS]:
         stratify = y
     else:
@@ -490,9 +492,12 @@ def generate_train_test_split(
         if len(y_test) >= len(y_split.unique()):
             # This should never occur, otherwise the original exception is not an expected one
             raise
+    import pdb; pdb.set_trace()
     if problem_type != SOFTCLASS:
-        y_train = pd.Series(y_train, index=X_train.index)
-        y_test = pd.Series(y_test, index=X_test.index)
+        y_train = pd.DataFrame(y_train, index=X_train.index)
+        y_test = pd.DataFrame(y_test, index=X_test.index)
+        # y_train = pd.Series(y_train, index=X_train.index)
+        # y_test = pd.Series(y_test, index=X_test.index)
     else:
         y_train = pd.DataFrame(y_train, index=X_train.index)
         y_test = pd.DataFrame(y_test, index=X_test.index)
@@ -558,6 +563,7 @@ def normalize_pred_probas(y_predprob, problem_type, eps=1e-7):
 
 
 def infer_problem_type(y: Series, silent=False) -> str:
+    import pdb; pdb.set_trace()
     """Identifies which type of prediction problem we are interested in (if user has not specified).
     Ie. binary classification, multi-class classification, or regression.
     """
@@ -612,7 +618,7 @@ def infer_problem_type(y: Series, silent=False) -> str:
     else:
         raise NotImplementedError(f"label dtype {y.dtype} not supported!")
     if not silent:
-        logger.log(25, f"AutoGluon infers your prediction problem is: '{problem_type}' (because {reason}).")
+        logger.log(25, f"AutoGluon infers your prediction problem for label '{y.name}' is: '{problem_type}' (because {reason}).")
 
         # TODO: Move this outside of this function so it is visible even if problem type was not inferred.
         if problem_type in [BINARY, MULTICLASS]:

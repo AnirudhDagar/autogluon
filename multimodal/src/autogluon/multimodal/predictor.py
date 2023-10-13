@@ -183,7 +183,7 @@ class MultiModalPredictor(ExportMixin):
     """
     MultiModalPredictor is a deep learning "model zoo" of model zoos. It can automatically build deep learning models that
     are suitable for multimodal datasets. You will only need to preprocess the data in the multimodal dataframe format
-    and the MultiModalPredictor can predict the values of one column conditioned on the features from the other columns.
+    and the MultiModalPredictor can predict the values of the target columns conditioned on the features from the other columns.
 
     The prediction can be either classification or regression. The feature columns can contain
     image paths, text, numerical, and categorical values.
@@ -192,14 +192,18 @@ class MultiModalPredictor(ExportMixin):
 
     def __init__(
         self,
-        label: Optional[str] = None,
+        label: Optional[Union[str, List[str]]] = None,
         problem_type: Optional[str] = None,
+        # Right now for multi-label the problem_type should be either classification or regression
+        # problem_type: Optional[Union[str, List[str]]] = None,
         query: Optional[Union[str, List[str]]] = None,
         response: Optional[Union[str, List[str]]] = None,
         match_label: Optional[Union[int, str]] = None,
         pipeline: Optional[str] = None,
         presets: Optional[str] = None,
         eval_metric: Optional[str] = None,
+        # Eval metric can be only one
+        # eval_metric: Optional[Union[str, List[str]]] = None,
         hyperparameters: Optional[dict] = None,
         path: Optional[str] = None,
         verbosity: Optional[int] = 2,
@@ -216,7 +220,12 @@ class MultiModalPredictor(ExportMixin):
         Parameters
         ----------
         label
-            Name of the column that contains the target variable to predict.
+            Name of the column that contains the target variable to predict
+            or in case of multi-label classification, list of names of the columns that
+            contain the target variables to predict.
+            Multilabel problems include 'regression' or 'classification' or both (REMOVE THIS OPTION)
+            with more than one target columns.
+
         problem_type
             Type of the prediction problem. We support standard problems like
 
@@ -337,8 +346,26 @@ class MultiModalPredictor(ExportMixin):
                 )
             problem_type = pipeline
 
+
+        # Convert label, problem_type to list of str
+        if isinstance(label, str):
+            labels = [label]
+        else:
+            labels = label
+        # if isinstance(problem_type, str):
+        #     problem_types = [problem_type]
+        # else:
+        #     problem_types = problem_type
+
+        # if problem_types and len(problem_types) != len(labels):
+        #     raise ValueError("If provided, `problem_type` list must have same length as `label` list")
+        # if eval_metric and len(eval_metric) != len(labels):
+        #     raise ValueError("If provided, `eval_metric` list must have same length as `label` list")
+
         # Sanity check of problem_type
         if problem_type is not None:
+            # TODO: Add a for loop to check each `problem_type` and `eval_metric` for sanity checks if
+            # you give user the option to have multiple problem_types. Right now only one option, not a list
             problem_type = problem_type.lower()
             if problem_type == DEPRECATED_ZERO_SHOT:
                 warnings.warn(
@@ -398,7 +425,8 @@ class MultiModalPredictor(ExportMixin):
             warnings.warn("init_scratch is deprecated. Try pretrained=False instead.", UserWarning)
             pretrained = False
 
-        self._label_column = label
+        self._label_column = labels
+        self._multi_label = True if len(labels)>1 else False
         self._problem_type = problem_type
         self._presets = presets.lower() if presets else None
         self._eval_metric_name = eval_metric.lower() if eval_metric else None
@@ -734,12 +762,14 @@ class MultiModalPredictor(ExportMixin):
             fit_called=fit_called,
         )
 
+        import pdb; pdb.set_trace()
         if tuning_data is None:
             train_data, tuning_data = self._split_train_tuning(
                 data=train_data, holdout_frac=holdout_frac, random_state=seed
             )
 
         if self._label_column:
+            import pdb; pdb.set_trace()
             self._problem_type = infer_problem_type(
                 y_train_data=train_data[self._label_column],
                 provided_problem_type=self._problem_type,
@@ -753,11 +783,15 @@ class MultiModalPredictor(ExportMixin):
             problem_type=self._problem_type,  # used to update the corresponding column type
         )
 
-        output_shape = infer_output_shape(
-            label_column=self._label_column,
-            data=train_data,
-            problem_type=self._problem_type,
-        )
+        import pdb; pdb.set_trace()
+        output_shapes = {}
+        for col_name in self._label_column:
+            output_shape = infer_output_shape(
+                label_column=col_name,
+                data=train_data,
+                problem_type=self._problem_type,
+            )
+            output_shapes[col_name] = output_shape
 
         # Determine data scarcity mode, i.e. a few-shot scenario
         scarcity_mode = infer_scarcity_mode_by_data_size(
@@ -906,8 +940,12 @@ class MultiModalPredictor(ExportMixin):
         if holdout_frac is None:
             holdout_frac = default_holdout_frac(num_train_rows=len(data), hyperparameter_tune=False)
 
+        ############################
+        # TODO: UNDERSTAND THE HACK
+        ############################
         # TODO: Hack since the recognized problem types are only binary, multiclass, and regression
         #  Problem types used for purpose of stratification, so regression = no stratification
+        import pdb; pdb.set_trace()
         if self._problem_type in [BINARY, MULTICLASS]:
             problem_type_for_split = self._problem_type
         else:
@@ -1123,7 +1161,7 @@ class MultiModalPredictor(ExportMixin):
             df_preprocessor = init_df_preprocessor(
                 config=config,
                 column_types=self._column_types,
-                label_column=self._label_column,
+                label_column=self._label_column[0],
                 train_df_x=train_df.drop(columns=self._label_column),
                 train_df_y=train_df[self._label_column],
             )
@@ -1864,9 +1902,9 @@ class MultiModalPredictor(ExportMixin):
                     data=data,
                 )
         else:  # called .fit() or .load()
-            column_names = list(self._column_types.keys())
+            column_names = set(self._column_types.keys())
             # remove label column since it's not required in inference.
-            column_names.remove(self._label_column)
+            column_names = list(column_names-set(self._label_column))
             data = data_to_df(
                 data=data,
                 required_columns=self._df_preprocessor.required_feature_names,
