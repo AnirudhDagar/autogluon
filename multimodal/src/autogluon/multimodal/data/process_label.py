@@ -62,7 +62,6 @@ class LabelProcessor:
         A dictionary containing one sample's label.
         """
 
-        # import pdb; pdb.set_trace()
         if len(labels.keys())>1:
             print("Multi-label problem detected! Converting labels to vector")
             return {

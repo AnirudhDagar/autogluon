@@ -531,7 +531,6 @@ def generate_train_test_split(
             X_train = pd.concat([X_train, X_test_moved])
             y_test = y_test.drop(index=indices_to_move)
             X_test = X_test.drop(index=indices_to_move)
-        import pdb; pdb.set_trace()
         # dataframe and series handled differently
         if isinstance(y_split, pd.DataFrame):
             y_train.columns = y_split.columns
@@ -567,7 +566,6 @@ def normalize_pred_probas(y_predprob, problem_type, eps=1e-7):
 
 
 def infer_problem_type(y: Series, silent=False) -> str:
-    import pdb; pdb.set_trace()
     """Identifies which type of prediction problem we are interested in (if user has not specified).
     Ie. binary classification, multi-class classification, or regression.
     """

@@ -22,6 +22,9 @@ from ..constants import (
     IMAGE_BYTEARRAY,
     IMAGE_PATH,
     MULTICLASS,
+    MULTILABEL_BINARY,
+    MULTILABEL_MULTICLASS,
+    MULTILABEL_REGRESSION,
     NER,
     NER_ANNOTATION,
     NULL,
@@ -701,7 +704,6 @@ def infer_problem_type(
 
             problem_types[col_name]=problem_type
 
-        import pdb; pdb.set_trace()
         assert len(set(problem_types.values())) == 1, ("Mixing problem_types for multi-label is not supported in AutoGluon!")
         # TODO: CURRENTLY PROBLEM TYPE IS JUST THE LAST COLUMN. NEED TO FIX THAT
         # BY CONSIDERING ALL TYPES IN THE DICTIONARY AND MAKING A LOSS FUNCTION ACCORDING TO THAT
@@ -711,6 +713,16 @@ def infer_problem_type(
         for col_name in y_train_data.columns:
             problem_types[col_name] = problem_type
 
+    # if len(problem_types)>1 and len(y_train_data.columns)>1:
+    #     for per_column_problem in problem_types.values():
+    #         if per_column_problem == BINARY:
+    #             problem_type = MULTILABEL_BINARY
+    #         elif per_column_problem == MULTICLASS:
+    #             problem_type = MULTILABEL_MULTICLASS
+    #         elif per_column_problem == REGRESSION:
+    #             problem_type = MULTILABEL_REGRESSION
+    #         else:
+    #             raise ValueError(f"Inferred problem type {per_column_problem} is not a supported multi-label problem type.")
     # Right now we don't return all the problem_types dict since we only support
     # single problem_type for all labels
     return problem_type

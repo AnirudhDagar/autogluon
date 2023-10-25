@@ -65,6 +65,9 @@ from .constants import (
     MODEL_CHECKPOINT,
     MULTI_IMAGE_MIX_DATASET,
     MULTICLASS,
+    MULTILABEL_BINARY,
+    MULTILABEL_MULTICLASS,
+    MULTILABEL_REGRESSION,
     NER,
     NER_RET,
     NUMERICAL,
@@ -793,6 +796,8 @@ class MultiModalPredictor(ExportMixin):
         )
 
         output_shapes = {}
+        # TODO: Infer output shapes by passing problem_type completely
+        # currently we strip out "multilabel_" internally in infer_output_shape
         for col_name in self._label_column:
             output_shape = infer_output_shape(
                 label_column=col_name,
@@ -1171,7 +1176,6 @@ class MultiModalPredictor(ExportMixin):
         )
 
         if self._df_preprocessor is None:
-            import pdb; pdb.set_trace()
             df_preprocessor = init_df_preprocessor(
                 config=config,
                 column_types=self._column_types,
@@ -1258,9 +1262,10 @@ class MultiModalPredictor(ExportMixin):
                 "The per_gpu_batch_size should be >1 and even for reasonable operation",
                 UserWarning,
             )
-        import pdb; pdb.set_trace()
+        if self._multi_label:
+            problem_type_for_loss = "multilabel_" + self._problem_type
         loss_func = get_loss_func(
-            problem_type=self._problem_type,
+            problem_type=problem_type_for_loss,
             mixup_active=mixup_active,
             loss_func_name=OmegaConf.select(config, "optimization.loss_function"),
             config=config.optimization,
@@ -1331,7 +1336,6 @@ class MultiModalPredictor(ExportMixin):
 
         val_use_training_mode = (self._problem_type == OBJECT_DETECTION) and (validation_metric_name != MAP)
         train_dataset = None
-        import pdb; pdb.set_trace()
         if (
             self._problem_type == OBJECT_DETECTION
             and self._model.config is not None
@@ -1364,7 +1368,6 @@ class MultiModalPredictor(ExportMixin):
                 validate_data=val_df,
                 val_use_training_mode=val_use_training_mode,
             )
-            import pdb; pdb.set_trace()
 
         optimization_kwargs = dict(
             optim_type=config.optimization.optim_type,

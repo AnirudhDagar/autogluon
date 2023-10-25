@@ -46,6 +46,9 @@ from ..constants import (
     MEAN_AVERAGE_PRECISION,
     MULTI_NEGATIVES_SOFTMAX_LOSS,
     MULTICLASS,
+    MULTILABEL_BINARY,
+    MULTILABEL_MULTICLASS,
+    MULTILABEL_REGRESSION,
     NER,
     NER_TOKEN_F1,
     NORM_FIT,
@@ -113,7 +116,7 @@ def get_loss_func(
                 )
             else:
                 loss_func = nn.CrossEntropyLoss()
-    elif problem_type == REGRESSION:
+    elif problem_type in [REGRESSION, MULTILABEL_REGRESSION]:
         if loss_func_name is not None:
             if "bcewithlogitsloss" in loss_func_name.lower():
                 loss_func = nn.BCEWithLogitsLoss()
@@ -121,6 +124,9 @@ def get_loss_func(
                 loss_func = nn.MSELoss()
         else:
             loss_func = nn.MSELoss()
+    elif problem_type in [MULTILABEL_BINARY, MULTILABEL_MULTICLASS]:
+        #TODO: Handle mixup later
+        loss_func = nn.BCEWithLogitsLoss()
     elif problem_type == NER:
         loss_func = nn.CrossEntropyLoss(ignore_index=0)
     elif problem_type in [OBJECT_DETECTION, OPEN_VOCABULARY_OBJECT_DETECTION]:

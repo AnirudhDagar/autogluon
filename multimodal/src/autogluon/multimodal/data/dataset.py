@@ -61,7 +61,6 @@ class BaseDataset(torch.utils.data.Dataset):
             setattr(self, f"modality_types_{i}", modality_types)
 
         assert len(set(self.lengths)) == 1
-        import pdb; pdb.set_trace()
         self.id_mappings = id_mappings
 
     def __len__(self):

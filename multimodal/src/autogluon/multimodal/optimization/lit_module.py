@@ -176,6 +176,8 @@ class LitModule(pl.LightningModule):
         label: torch.Tensor,
     ):
         loss = 0
+        if isinstance(self.loss_func, torch.nn.modules.loss.BCEWithLogitsLoss):
+            label = label.float()
         for _, per_output in output.items():
             weight = per_output[WEIGHT] if WEIGHT in per_output else 1
             if (
@@ -366,7 +368,6 @@ class LitModule(pl.LightningModule):
             if isinstance(self.trainer.strategy, DeepSpeedStrategy):
                 max_steps = 1
             else:
-                import pdb; pdb.set_trace()
                 max_steps = (
                     len(self.trainer.datamodule.train_dataloader())
                     * self.trainer.max_epochs

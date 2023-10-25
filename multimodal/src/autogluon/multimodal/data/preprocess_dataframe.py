@@ -363,11 +363,9 @@ class MultiModalFeaturePreprocessor(TransformerMixin, BaseEstimator):
             raise RuntimeError("fit_y() has been called. Please create a new preprocessor and call it again!")
         self._fit_y_called = True
         logger.debug(f'Process col "{self._label_column}" with type label')
-        import pdb; pdb.set_trace()
         for label_col in self._label_column:
             if self.column_types[label_col] == CATEGORICAL:
                 self._label_generator.fit(y[label_col])
-                import pdb; pdb.set_trace()
             elif self.column_types[label_col] == NUMERICAL:
                 self._label_scaler.fit(np.expand_dims(pd.to_numeric(y[label_col]).to_numpy(), axis=-1))
             elif self.column_types[label_col] == ROIS:
@@ -722,7 +720,6 @@ class MultiModalFeaturePreprocessor(TransformerMixin, BaseEstimator):
             y = y_df[label_col]
             if self.column_types[label_col] == CATEGORICAL:
                 y = self._label_generator.transform(y).astype(np.int64)
-                import pdb; pdb.set_trace()
             elif self.column_types[label_col] == NUMERICAL:
                 y = pd.to_numeric(y).to_numpy()
                 y = self._label_scaler.transform(np.expand_dims(y, axis=-1))[:, 0].astype(np.float32)
@@ -735,7 +732,6 @@ class MultiModalFeaturePreprocessor(TransformerMixin, BaseEstimator):
             labels[label_col] = y
             label_types[label_col] = self.column_types[label_col]
 
-        import pdb; pdb.set_trace()
         return labels, label_types
 
     def transform_text_ner(
