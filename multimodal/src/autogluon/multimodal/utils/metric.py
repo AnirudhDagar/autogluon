@@ -20,6 +20,9 @@ from ..constants import (
     MAP,
     METRIC_MODE_MAP,
     MULTICLASS,
+    MULTILABEL_BINARY,
+    MULTILABEL_MULTICLASS,
+    MULTILABEL_REGRESSION,
     NDCG,
     NER,
     NER_TOKEN_F1,
@@ -33,6 +36,7 @@ from ..constants import (
     RETRIEVAL_METRICS,
     RMSE,
     ROC_AUC,
+    MULTILABEL_ROC_AUC,
     SPEARMANR,
     VALID_METRICS,
     Y_PRED,
@@ -106,6 +110,8 @@ def infer_metrics(
         return NER_TOKEN_F1, OVERALL_F1
     elif problem_type == BINARY:
         eval_metric_name = ROC_AUC
+    elif problem_type == MULTILABEL_BINARY:
+        eval_metric_name = MULTILABEL_ROC_AUC
     elif problem_type == REGRESSION:
         if is_matching:
             eval_metric_name = SPEARMANR

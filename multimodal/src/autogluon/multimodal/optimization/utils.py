@@ -64,6 +64,7 @@ from ..constants import (
     REGRESSION,
     RMSE,
     ROC_AUC,
+    MULTILABEL_ROC_AUC,
     ROOT_MEAN_SQUARED_ERROR,
     SPEARMANR,
 )
@@ -258,6 +259,8 @@ def get_metric(
         )
     elif metric_name == ROC_AUC:
         return torchmetrics.AUROC(task=problem_type, num_classes=num_classes), None
+    elif metric_name == MULTILABEL_ROC_AUC:
+        return torchmetrics.classification.MultilabelAUROC(num_labels=num_classes, average="macro"), None
     elif metric_name == AVERAGE_PRECISION:
         return torchmetrics.AveragePrecision(task=problem_type, num_classes=num_classes)
     elif metric_name in [LOG_LOSS, CROSS_ENTROPY]:

@@ -114,6 +114,7 @@ PEARSONR = "pearsonr"
 SPEARMANR = "spearmanr"
 QUADRATIC_KAPPA = "quadratic_kappa"
 ROC_AUC = "roc_auc"
+MULTILABEL_ROC_AUC = "multilabel_roc_auc"
 AVERAGE_PRECISION = "average_precision"
 LOG_LOSS = "log_loss"
 CROSS_ENTROPY = "cross_entropy"
@@ -137,6 +138,7 @@ METRIC_MODE_MAP = {
     R2: MAX,
     QUADRATIC_KAPPA: MAX,
     ROC_AUC: MAX,
+    MULTILABEL_ROC_AUC: MAX,
     LOG_LOSS: MIN,
     CROSS_ENTROPY: MIN,
     PEARSONR: MAX,

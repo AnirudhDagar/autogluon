@@ -204,6 +204,8 @@ class LitModule(pl.LightningModule):
         ):
             prob = F.softmax(logits.float(), dim=1)
             metric.update(preds=prob[:, 1], target=label)  # only for binary classification
+        elif isinstance(metric, torchmetrics.classification.MultilabelAUROC):
+            metric.update(preds=logits, target=label)
         elif isinstance(metric, BaseAggregator):
             metric.update(custom_metric_func(logits, label))
         else:
@@ -217,9 +219,8 @@ class LitModule(pl.LightningModule):
         if self.mixup_fn is not None:
             self.mixup_fn.mixup_enabled = self.training & (self.current_epoch < self.hparams.mixup_off_epoch)
             batch, label = multimodel_mixup(batch=batch, model=self.model, mixup_fn=self.mixup_fn)
-        import pdb; pdb.set_trace()
         output = run_model(self.model, batch)
-        loss = self._compute_loss(output=output, label=label)
+        loss = self._compute_loss(output=output, label=label.float())
         return output, loss
 
     def training_step(self, batch, batch_idx):

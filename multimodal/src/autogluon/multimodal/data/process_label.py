@@ -64,7 +64,7 @@ class LabelProcessor:
 
         if len(labels.keys())>1:
             return {
-                self.label_key: torch.tensor(list(labels.values()), dtype=torch.float32),
+                self.label_key: torch.tensor(list(labels.values())),
             }
         return {
             self.label_key: labels[next(iter(labels))],  # get the first key's value

@@ -842,9 +842,13 @@ class MultiModalPredictor(ExportMixin):
             else:
                 self._output_shape = output_shape_combined
 
+        if self._multi_label:
+            problem_type_for_metric = "multilabel_" + self._problem_type
+        else:
+            problem_type_for_metric = self._problem_type
         if self._validation_metric_name is None or self._eval_metric_name is None:
             validation_metric_name, eval_metric_name = infer_metrics(
-                problem_type=self._problem_type,
+                problem_type=problem_type_for_metric,
                 eval_metric_name=self._eval_metric_name,
                 validation_metric_name=self._validation_metric_name,
             )
@@ -1242,11 +1246,13 @@ class MultiModalPredictor(ExportMixin):
         data_processors_count = {k: len(v) for k, v in data_processors.items()}
         logger.debug(f"data_processors_count: {data_processors_count}")
 
+        if self._multi_label:
+            problem_type_for_metric = "multilabel_" + self._problem_type
         if validation_metric_name is not None:
             validation_metric, custom_metric_func = get_metric(
                 metric_name=validation_metric_name,
                 num_classes=self._output_shape,
-                problem_type=self._problem_type,
+                problem_type=problem_type_for_metric,
             )
         else:
             validation_metric, custom_metric_func = (None, None)
