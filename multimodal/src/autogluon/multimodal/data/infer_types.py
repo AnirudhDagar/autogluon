@@ -702,14 +702,17 @@ def infer_problem_type(
             problem_types[col_name]=problem_type
 
         import pdb; pdb.set_trace()
-        # assert len(set(problem_types.values())) == 1, ("Mixing problem_types for multi-label is not supported in AutoGluon!")
+        assert len(set(problem_types.values())) == 1, ("Mixing problem_types for multi-label is not supported in AutoGluon!")
         # TODO: CURRENTLY PROBLEM TYPE IS JUST THE LAST COLUMN. NEED TO FIX THAT
         # BY CONSIDERING ALL TYPES IN THE DICTIONARY AND MAKING A LOSS FUNCTION ACCORDING TO THAT
     else:
         problem_type = provided_problem_type
+        # NOTE: The following two lines of code are not used atm 
         for col_name in y_train_data.columns:
             problem_types[col_name] = problem_type
-    
+
+    # Right now we don't return all the problem_types dict since we only support
+    # single problem_type for all labels
     return problem_type
 
 

@@ -1,0 +1,13 @@
+label 1 | lab 2 | ..
+
+0,1,2 | yes, no | 
+
+
+1. multi label with all binary labels: n neurons, sigmoid BCE
+2. multi target regression: n neurons, MSE/
+3. multi label with some binary labels, multi class labels: 4 
+4. combination
+
+
+
+label(s), Optional[problem_type], eval_metric 

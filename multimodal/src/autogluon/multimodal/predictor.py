@@ -353,6 +353,8 @@ class MultiModalPredictor(ExportMixin):
             labels = [label]
         else:
             labels = label
+
+        # TODO: Add support for different problem_types in multi label problem
         # if isinstance(problem_type, str):
         #     problem_types = [problem_type]
         # else:
@@ -772,7 +774,6 @@ class MultiModalPredictor(ExportMixin):
         )
 
         if self._label_column:
-            import pdb; pdb.set_trace()
             self._problem_type = infer_problem_type(
                 y_train_data=train_data[self._label_column],
                 provided_problem_type=self._problem_type,
@@ -791,7 +792,6 @@ class MultiModalPredictor(ExportMixin):
             problem_type=self._problem_type,  # used to update the corresponding column type
         )
 
-        import pdb; pdb.set_trace()
         output_shapes = {}
         for col_name in self._label_column:
             output_shape = infer_output_shape(
@@ -800,6 +800,9 @@ class MultiModalPredictor(ExportMixin):
                 problem_type=self._problem_type,
             )
             output_shapes[col_name] = output_shape
+        # TODO: Sum or take one?
+        # output_shape_combined = sum(output_shapes.values())
+        output_shape_combined = output_shape
 
         # Determine data scarcity mode, i.e. a few-shot scenario
         scarcity_mode = infer_scarcity_mode_by_data_size(
@@ -822,13 +825,17 @@ class MultiModalPredictor(ExportMixin):
             # use previous column types to avoid inconsistency with previous numerical mlp and categorical mlp
             column_types = self._column_types
 
+        def assert_out_shape(output_shape):
+            assert self._output_shape == output_shape, (
+                f"Inferred output shape {output_shape} is different from " f"the previous {self._output_shape}"
+            )
+
         if self._problem_type != OBJECT_DETECTION:
-            if self._output_shape is not None and output_shape is not None:
-                assert self._output_shape == output_shape, (
-                    f"Inferred output shape {output_shape} is different from " f"the previous {self._output_shape}"
-                )
+            if self._output_shape is not None and output_shapes is not None:
+                if not self._multi_label:
+                    assert_out_shape(output_shape_combined)
             else:
-                self._output_shape = output_shape
+                self._output_shape = output_shape_combined
 
         if self._validation_metric_name is None or self._eval_metric_name is None:
             validation_metric_name, eval_metric_name = infer_metrics(
@@ -950,12 +957,8 @@ class MultiModalPredictor(ExportMixin):
         if holdout_frac is None:
             holdout_frac = default_holdout_frac(num_train_rows=len(data), hyperparameter_tune=False)
 
-        ############################
-        # TODO: UNDERSTAND THE HACK
-        ############################
         # TODO: Hack since the recognized problem types are only binary, multiclass, and regression
         #  Problem types used for purpose of stratification, so regression = no stratification
-        import pdb; pdb.set_trace()
         if self._problem_type in [BINARY, MULTICLASS]:
             problem_type_for_split = self._problem_type
         else:
@@ -1168,10 +1171,11 @@ class MultiModalPredictor(ExportMixin):
         )
 
         if self._df_preprocessor is None:
+            import pdb; pdb.set_trace()
             df_preprocessor = init_df_preprocessor(
                 config=config,
                 column_types=self._column_types,
-                label_column=self._label_column[0],
+                label_column=self._label_column,
                 train_df_x=train_df.drop(columns=self._label_column),
                 train_df_y=train_df[self._label_column],
             )
@@ -1254,6 +1258,7 @@ class MultiModalPredictor(ExportMixin):
                 "The per_gpu_batch_size should be >1 and even for reasonable operation",
                 UserWarning,
             )
+        import pdb; pdb.set_trace()
         loss_func = get_loss_func(
             problem_type=self._problem_type,
             mixup_active=mixup_active,
@@ -1326,6 +1331,7 @@ class MultiModalPredictor(ExportMixin):
 
         val_use_training_mode = (self._problem_type == OBJECT_DETECTION) and (validation_metric_name != MAP)
         train_dataset = None
+        import pdb; pdb.set_trace()
         if (
             self._problem_type == OBJECT_DETECTION
             and self._model.config is not None
@@ -1358,6 +1364,7 @@ class MultiModalPredictor(ExportMixin):
                 validate_data=val_df,
                 val_use_training_mode=val_use_training_mode,
             )
+            import pdb; pdb.set_trace()
 
         optimization_kwargs = dict(
             optim_type=config.optimization.optim_type,
@@ -2325,6 +2332,7 @@ class MultiModalPredictor(ExportMixin):
                     result_path=None,
                 )
             else:
+                import pdb; pdb.set_trace()
                 pred = self._as_pandas(data=data, to_be_converted=pred)
 
         return pred
@@ -2507,7 +2515,8 @@ class MultiModalPredictor(ExportMixin):
         if isinstance(to_be_converted, list) or (
             isinstance(to_be_converted, np.ndarray) and to_be_converted.ndim == 1
         ):
-            return pd.Series(to_be_converted, index=index, name=self._label_column)
+        # TODO: Handle names for output series/dataframe
+            return pd.Series(to_be_converted, index=index, name=self._label_column[0])
         else:
             return pd.DataFrame(to_be_converted, index=index, columns=self.class_labels)
 

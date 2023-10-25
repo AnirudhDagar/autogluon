@@ -1,5 +1,6 @@
 from typing import Any, Dict, List, Optional, Union
 
+import torch
 from torch import nn
 
 from ..constants import LABEL, MMDET_IMAGE
@@ -61,6 +62,12 @@ class LabelProcessor:
         A dictionary containing one sample's label.
         """
 
+        # import pdb; pdb.set_trace()
+        if len(labels.keys())>1:
+            print("Multi-label problem detected! Converting labels to vector")
+            return {
+                self.label_key: torch.tensor(list(labels.values())),
+            }
         return {
             self.label_key: labels[next(iter(labels))],  # get the first key's value
         }

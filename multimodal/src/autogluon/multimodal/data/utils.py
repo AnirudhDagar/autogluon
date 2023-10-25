@@ -231,6 +231,8 @@ def get_per_sample_features(
     """
     ret = dict()
     for per_modality, per_modality_features in modality_features.items():
+        # if per_modality=='label':
+            # import pdb; pdb.set_trace()
         if per_modality_features:
             per_modality_ret = dict()
             for per_col_name, per_col_features in per_modality_features.items():

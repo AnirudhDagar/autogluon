@@ -47,7 +47,7 @@ class MultiModalFeaturePreprocessor(TransformerMixin, BaseEstimator):
         self,
         config: DictConfig,
         column_types: Dict,
-        label_column: Optional[str] = None,
+        label_column: Optional[List[str]] = None,
         label_generator: Optional[object] = None,
     ):
         """
@@ -92,7 +92,7 @@ class MultiModalFeaturePreprocessor(TransformerMixin, BaseEstimator):
             self._label_scaler = None
 
         for col_name, col_type in self._column_types.items():
-            if col_name == self._label_column:
+            if col_name in self._label_column:
                 continue
             if col_type.startswith((TEXT, IMAGE, ROIS, TEXT_NER, DOCUMENT)) or col_type == NULL:
                 continue
@@ -227,7 +227,7 @@ class MultiModalFeaturePreprocessor(TransformerMixin, BaseEstimator):
 
     @property
     def label_type(self):
-        return self._column_types[self._label_column]
+        return self._column_types[label_col[0]]
 
     @property
     def label_scaler(self):
@@ -271,9 +271,9 @@ class MultiModalFeaturePreprocessor(TransformerMixin, BaseEstimator):
         elif modality.startswith(DOCUMENT):
             return self._document_feature_names
         elif modality == LABEL:
-            return [self._label_column]  # as a list to be consistent with others
+            return self._label_column
         elif self.label_type == NER_ANNOTATION:
-            return self.ner_feature_names + [self._label_column]
+            return self.ner_feature_names + self._label_column
         else:
             raise ValueError(f"Unknown modality: {modality}.")
 
@@ -350,7 +350,7 @@ class MultiModalFeaturePreprocessor(TransformerMixin, BaseEstimator):
                     f"Type of the column is not supported currently. Received {col_name}={col_type}."
                 )
 
-    def _fit_y(self, y: pd.Series, X: Optional[pd.DataFrame] = None):
+    def _fit_y(self, y: pd.DataFrame, X: Optional[pd.DataFrame] = None):
         """
         Fit the label column data to initialize the label encoder or scalar.
 
@@ -363,30 +363,32 @@ class MultiModalFeaturePreprocessor(TransformerMixin, BaseEstimator):
             raise RuntimeError("fit_y() has been called. Please create a new preprocessor and call it again!")
         self._fit_y_called = True
         logger.debug(f'Process col "{self._label_column}" with type label')
-        if self.label_type == CATEGORICAL:
-            self._label_generator.fit(y)
-        elif self.label_type == NUMERICAL:
-            y = pd.to_numeric(y).to_numpy()
-            self._label_scaler.fit(np.expand_dims(y, axis=-1))
-        elif self.label_type == ROIS:
-            pass  # Do nothing. TODO: Shall we call fit here?
-        elif self.label_type == NER_ANNOTATION:
-            # If there are ner annotations and text columns but no NER feature columns,
-            # we will convert the first text column into a ner column.
-            # Added for backward compatibility for v0.6.0 where column_type is not specified.
-            if len(self._ner_feature_names) == 0:
-                if len(self._text_feature_names) != 0:
-                    self._ner_feature_names.append(self._text_feature_names.pop(0))
-                    self.column_types[self._ner_feature_names[0]] = TEXT_NER
-                else:
-                    raise NotImplementedError(
-                        f"Text column is necessary for named entity recognition, however, no text column is detected."
-                    )
-            self._label_generator.fit(y, X[self.ner_feature_names[0]])
-        else:
-            raise NotImplementedError(f"Type of label column is not supported. Label column type={self.label_type}")
+        import pdb; pdb.set_trace()
+        for label_col in self._label_column:
+            if self.column_types[label_col] == CATEGORICAL:
+                self._label_generator.fit(y[label_col])
+                import pdb; pdb.set_trace()
+            elif self.column_types[label_col] == NUMERICAL:
+                self._label_scaler.fit(np.expand_dims(pd.to_numeric(y[label_col]).to_numpy(), axis=-1))
+            elif self.column_types[label_col] == ROIS:
+                pass  # Do nothing. TODO: Shall we call fit here?
+            elif self.column_types[label_col] == NER_ANNOTATION:
+                # If there are ner annotations and text columns but no NER feature columns,
+                # we will convert the first text column into a ner column.
+                # Added for backward compatibility for v0.6.0 where column_type is not specified.
+                if len(self._ner_feature_names) == 0:
+                    if len(self._text_feature_names) != 0:
+                        self._ner_feature_names.append(self._text_feature_names.pop(0))
+                        self.column_types[self._ner_feature_names[0]] = TEXT_NER
+                    else:
+                        raise NotImplementedError(
+                            f"Text column is necessary for named entity recognition, however, no text column is detected."
+                        )
+                self._label_generator.fit(y, X[self.ner_feature_names[0]])
+            else:
+                raise NotImplementedError(f"Type of label column is not supported. Label column type={self.column_types[label_col]}")
 
-    def fit(self, X: Optional[pd.DataFrame] = None, y: Optional[pd.Series] = None):
+    def fit(self, X: Optional[pd.DataFrame] = None, y: Optional[pd.DataFrame] = None):
         """
         Fit the dataframe preprocessor with features X and labels y.
 
@@ -395,7 +397,7 @@ class MultiModalFeaturePreprocessor(TransformerMixin, BaseEstimator):
         X
             The multimodal features in the format of pd.DataFrame.
         y
-            The Label data in the format of pd.Series.
+            The Label data in the format of pd.DataFrame.
         """
         if X is not None:
             self._fit_x(X=X)
@@ -714,19 +716,27 @@ class MultiModalFeaturePreprocessor(TransformerMixin, BaseEstimator):
             self._fit_called or self._fit_y_called
         ), "You will need to first call preprocessor.fit_y() before calling preprocessor.transform_label."
         y_df = df[self._label_column]
-        if self.label_type == CATEGORICAL:
-            y = self._label_generator.transform(y_df).astype(np.int64)
-        elif self.label_type == NUMERICAL:
-            y = pd.to_numeric(y_df).to_numpy()
-            y = self._label_scaler.transform(np.expand_dims(y, axis=-1))[:, 0].astype(np.float32)
-        elif self.label_type == ROIS:
-            y = y_df.to_list()
-        elif self.label_type == NER_ANNOTATION:
-            y = self._label_generator.transform(y_df)
-        else:
-            raise NotImplementedError
+        labels = {}
+        label_types = {}
+        for label_col in self._label_column:
+            y = y_df[label_col]
+            if self.column_types[label_col] == CATEGORICAL:
+                y = self._label_generator.transform(y).astype(np.int64)
+                import pdb; pdb.set_trace()
+            elif self.column_types[label_col] == NUMERICAL:
+                y = pd.to_numeric(y).to_numpy()
+                y = self._label_scaler.transform(np.expand_dims(y, axis=-1))[:, 0].astype(np.float32)
+            elif self.label_type == ROIS:
+                y = y_df.to_list()
+            elif self.label_type == NER_ANNOTATION:
+                y = self._label_generator.transform(y_df)
+            else:
+                raise NotImplementedError
+            labels[label_col] = y
+            label_types[label_col] = self.column_types[label_col]
 
-        return {self._label_column: y}, {self._label_column: self.label_type}
+        import pdb; pdb.set_trace()
+        return labels, label_types
 
     def transform_text_ner(
         self,

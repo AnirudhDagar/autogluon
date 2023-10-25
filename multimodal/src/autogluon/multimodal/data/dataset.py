@@ -61,7 +61,7 @@ class BaseDataset(torch.utils.data.Dataset):
             setattr(self, f"modality_types_{i}", modality_types)
 
         assert len(set(self.lengths)) == 1
-
+        import pdb; pdb.set_trace()
         self.id_mappings = id_mappings
 
     def __len__(self):
@@ -89,6 +89,7 @@ class BaseDataset(torch.utils.data.Dataset):
         Input data formatted as a dictionary.
         """
         ret = dict()
+        print("in here!")
         try:
             for group_id, per_processors_group in enumerate(self.processors):
                 per_sample_features = get_per_sample_features(

@@ -447,7 +447,6 @@ def generate_train_test_split(
 
     X_split = X
     y_split = y
-    import pdb; pdb.set_trace()
     if problem_type in [BINARY, MULTICLASS]:
         stratify = y
     else:
@@ -492,7 +491,6 @@ def generate_train_test_split(
         if len(y_test) >= len(y_split.unique()):
             # This should never occur, otherwise the original exception is not an expected one
             raise
-    import pdb; pdb.set_trace()
     if problem_type != SOFTCLASS:
         y_train = pd.DataFrame(y_train, index=X_train.index)
         y_test = pd.DataFrame(y_test, index=X_test.index)
@@ -533,8 +531,14 @@ def generate_train_test_split(
             X_train = pd.concat([X_train, X_test_moved])
             y_test = y_test.drop(index=indices_to_move)
             X_test = X_test.drop(index=indices_to_move)
-        y_train.name = y_split.name
-        y_test.name = y_split.name
+        import pdb; pdb.set_trace()
+        # dataframe and series handled differently
+        if isinstance(y_split, pd.DataFrame):
+            y_train.columns = y_split.columns
+            y_test.columns = y_split.columns
+        else:
+            y_train.name = y_split.name
+            y_test.name = y_split.name
     return X_train, X_test, y_train, y_test
 
 

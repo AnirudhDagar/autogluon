@@ -79,6 +79,7 @@ def get_loss_func(
     mixup_active: bool,
     loss_func_name: Optional[str] = None,
     config: Optional[DictConfig] = None,
+    is_multi_target: Optional[bool] = False
 ):
     """
     Choose a suitable Pytorch loss module based on the provided problem type.
@@ -95,6 +96,7 @@ def get_loss_func(
         The optimization configs containing values such as i.e. optimization.loss_function
         An example purpose of this config here is to pass through the parameters for focal loss, i.e.:
             alpha = optimization.focal_loss.alpha
+    is_multi_target
     Returns
     -------
     A Pytorch loss module.

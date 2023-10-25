@@ -105,6 +105,9 @@ class BaseDataModule(LightningDataModule):
             is_training=is_training,
         )
 
+        check_call_to_dataset = dataset[0]
+        import pdb; pdb.set_trace()
+
         setattr(self, f"{split}_dataset", dataset)
 
     def setup(self, stage):

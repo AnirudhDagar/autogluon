@@ -217,6 +217,7 @@ class LitModule(pl.LightningModule):
         if self.mixup_fn is not None:
             self.mixup_fn.mixup_enabled = self.training & (self.current_epoch < self.hparams.mixup_off_epoch)
             batch, label = multimodel_mixup(batch=batch, model=self.model, mixup_fn=self.mixup_fn)
+        import pdb; pdb.set_trace()
         output = run_model(self.model, batch)
         loss = self._compute_loss(output=output, label=label)
         return output, loss
@@ -365,6 +366,7 @@ class LitModule(pl.LightningModule):
             if isinstance(self.trainer.strategy, DeepSpeedStrategy):
                 max_steps = 1
             else:
+                import pdb; pdb.set_trace()
                 max_steps = (
                     len(self.trainer.datamodule.train_dataloader())
                     * self.trainer.max_epochs

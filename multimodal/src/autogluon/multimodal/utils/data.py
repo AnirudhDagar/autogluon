@@ -57,9 +57,9 @@ logger = logging.getLogger(__name__)
 def init_df_preprocessor(
     config: DictConfig,
     column_types: Dict,
-    label_column: Optional[str] = None,
+    label_column: Optional[List[str]] = None,
     train_df_x: Optional[pd.DataFrame] = None,
-    train_df_y: Optional[pd.Series] = None,
+    train_df_y: Optional[pd.DataFrame] = None,
 ):
     """
     Initialize the dataframe preprocessor by calling .fit().
@@ -84,7 +84,7 @@ def init_df_preprocessor(
     -------
     Initialized dataframe preprocessor.
     """
-    if label_column is not None and column_types[label_column] == NER_ANNOTATION:
+    if label_column is not None and column_types[label_column[0]] == NER_ANNOTATION:
         label_generator = NerLabelEncoder(config)
     else:
         label_generator = None
