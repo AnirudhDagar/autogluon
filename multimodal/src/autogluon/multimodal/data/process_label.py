@@ -63,9 +63,8 @@ class LabelProcessor:
         """
 
         if len(labels.keys())>1:
-            print("Multi-label problem detected! Converting labels to vector")
             return {
-                self.label_key: torch.tensor(list(labels.values())),
+                self.label_key: torch.tensor(list(labels.values()), dtype=torch.float32),
             }
         return {
             self.label_key: labels[next(iter(labels))],  # get the first key's value

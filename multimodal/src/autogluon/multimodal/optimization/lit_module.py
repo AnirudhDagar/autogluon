@@ -176,8 +176,6 @@ class LitModule(pl.LightningModule):
         label: torch.Tensor,
     ):
         loss = 0
-        if isinstance(self.loss_func, torch.nn.modules.loss.BCEWithLogitsLoss):
-            label = label.float()
         for _, per_output in output.items():
             weight = per_output[WEIGHT] if WEIGHT in per_output else 1
             if (

@@ -88,7 +88,6 @@ class BaseDataset(torch.utils.data.Dataset):
         Input data formatted as a dictionary.
         """
         ret = dict()
-        print("in here!")
         try:
             for group_id, per_processors_group in enumerate(self.processors):
                 per_sample_features = get_per_sample_features(
