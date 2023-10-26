@@ -801,11 +801,13 @@ class MultiModalFeaturePreprocessor(TransformerMixin, BaseEstimator):
             self._fit_called or self._fit_y_called
         ), "You will need to first call preprocessor.fit_y() before calling preprocessor.transform_label_for_metric."
         y_df = df[self._label_column]
+        y = []
         import pdb; pdb.set_trace()
         for label_col in self._label_column:
             if self.label_type == CATEGORICAL:
                 # need to encode to integer labels
-                y_df[label_col] = self._label_generator[label_col].transform(y_df[label_col])
+                y_label_col = self._label_generator[label_col].transform(y_df[label_col])
+                y.append(y_label_col)
             elif self.label_type == NUMERICAL:
                 # need to compute the metric on the raw numerical values (no normalization)
                 y = pd.to_numeric(y_df).to_numpy()
@@ -814,8 +816,10 @@ class MultiModalFeaturePreprocessor(TransformerMixin, BaseEstimator):
                 y = self._label_generator[label_col].transform_label_for_metric(y_df, x_df, tokenizer)
             else:
                 raise NotImplementedError
-        import pdb; pdb.set_trace()
-        return y
+        if len(y)==0:
+            return np.array(y)
+        else:
+            return y
 
     def transform_prediction(
         self,
