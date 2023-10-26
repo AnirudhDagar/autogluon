@@ -2094,16 +2094,22 @@ class MultiModalPredictor(ExportMixin):
 
         metric_data = {}
         if self._problem_type in [BINARY, MULTICLASS]:
-            y_pred_prob = logits_to_prob(logits)
-            metric_data[Y_PRED_PROB] = y_pred_prob
+            if not self._multi_label:
+                y_pred_prob = logits_to_prob(logits)
+                metric_data[Y_PRED_PROB] = y_pred_prob
+            else:
+                y_pred_prob = logits
+                metric_data[Y_PRED_PROB] = y_pred_prob
 
         y_pred = self._df_preprocessor.transform_prediction(
             y_pred=logits,
             inverse_categorical=False,
+            multi_label=self._multi_label
         )
         y_pred_inv = self._df_preprocessor.transform_prediction(
             y_pred=logits,
             inverse_categorical=True,
+            multi_label=self._multi_label
         )
 
         if self._problem_type == NER:
@@ -2288,9 +2294,10 @@ class MultiModalPredictor(ExportMixin):
                 else:
                     pred = self._df_preprocessor.transform_prediction(
                         y_pred=logits,
+                        multi_label=self._multi_label
                     )
             else:
-                if isinstance(logits, (torch.Tensor, np.ndarray)) and logits.ndim == 2:
+                if isinstance(logits, (torch.Tensor, np.ndarray)) and logits.ndim == 2 and not self._multi_label:
                     pred = logits.argmax(axis=1)
                 else:
                     pred = logits

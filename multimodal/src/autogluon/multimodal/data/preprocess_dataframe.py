@@ -48,7 +48,7 @@ class MultiModalFeaturePreprocessor(TransformerMixin, BaseEstimator):
         config: DictConfig,
         column_types: Dict,
         label_column: Optional[List[str]] = None,
-        label_generator: Optional[object] = None,
+        label_generator: Optional[Dict[str, object]] = None,
     ):
         """
         Parameters
@@ -67,26 +67,35 @@ class MultiModalFeaturePreprocessor(TransformerMixin, BaseEstimator):
         self._config = config
         self._feature_generators = dict()
 
-        if label_column:
-            if label_generator is None:
-                self._label_generator = CustomLabelEncoder(
-                    positive_class=OmegaConf.select(config, "pos_label", default=None)
-                )
+        if label_generator:
+            if not isinstance(label_generator, dict):
+                self._label_generator[label_col] = label_generator
             else:
                 self._label_generator = label_generator
+        else:
+            self._label_generator = dict()
 
-            # Scaler used for numerical labels
-            numerical_label_preprocessing = OmegaConf.select(config, "label.numerical_label_preprocessing")
-            if numerical_label_preprocessing == "minmaxscaler":
-                self._label_scaler = MinMaxScaler()
-            elif numerical_label_preprocessing == "standardscaler":
-                self._label_scaler = StandardScaler()
-            elif numerical_label_preprocessing is None or numerical_label_preprocessing.lower() == "none":
-                self._label_scaler = StandardScaler(with_mean=False, with_std=False)
-            else:
-                raise ValueError(
-                    f"The numerical_label_preprocessing={numerical_label_preprocessing} is currently not supported"
-                )
+        self._label_scaler = dict()
+
+        if label_column:
+            for label_col in label_column:
+                if label_generator is None:
+                    self._label_generator[label_col] = CustomLabelEncoder(
+                        positive_class=OmegaConf.select(config, "pos_label", default=None)
+                    )
+
+                # Scaler used for numerical labels
+                numerical_label_preprocessing = OmegaConf.select(config, "label.numerical_label_preprocessing")
+                if numerical_label_preprocessing == "minmaxscaler":
+                    self._label_scaler[label_col] = MinMaxScaler()
+                elif numerical_label_preprocessing == "standardscaler":
+                    self._label_scaler[label_col] = StandardScaler()
+                elif numerical_label_preprocessing is None or numerical_label_preprocessing.lower() == "none":
+                    self._label_scaler[label_col] = StandardScaler(with_mean=False, with_std=False)
+                else:
+                    raise ValueError(
+                        f"The numerical_label_preprocessing={numerical_label_preprocessing} is currently not supported"
+                    )
         else:
             self._label_generator = None
             self._label_scaler = None
@@ -227,7 +236,10 @@ class MultiModalFeaturePreprocessor(TransformerMixin, BaseEstimator):
 
     @property
     def label_type(self):
-        return self._column_types[label_col[0]]
+        # Assume label_type to be same
+        # TODO: Handle different label types
+        # return [self._column_types[label_col] for label_col in self.label_column]
+        return self._column_types[self._label_column[0]]
 
     @property
     def label_scaler(self):
@@ -365,9 +377,9 @@ class MultiModalFeaturePreprocessor(TransformerMixin, BaseEstimator):
         logger.debug(f'Process col "{self._label_column}" with type label')
         for label_col in self._label_column:
             if self.column_types[label_col] == CATEGORICAL:
-                self._label_generator.fit(y[label_col])
+                self._label_generator[label_col].fit(y[label_col])
             elif self.column_types[label_col] == NUMERICAL:
-                self._label_scaler.fit(np.expand_dims(pd.to_numeric(y[label_col]).to_numpy(), axis=-1))
+                self._label_scaler[label_col].fit(np.expand_dims(pd.to_numeric(y[label_col]).to_numpy(), axis=-1))
             elif self.column_types[label_col] == ROIS:
                 pass  # Do nothing. TODO: Shall we call fit here?
             elif self.column_types[label_col] == NER_ANNOTATION:
@@ -382,7 +394,7 @@ class MultiModalFeaturePreprocessor(TransformerMixin, BaseEstimator):
                         raise NotImplementedError(
                             f"Text column is necessary for named entity recognition, however, no text column is detected."
                         )
-                self._label_generator.fit(y, X[self.ner_feature_names[0]])
+                self._label_generator[label_col].fit(y, X[self.ner_feature_names[0]])
             else:
                 raise NotImplementedError(f"Type of label column is not supported. Label column type={self.column_types[label_col]}")
 
@@ -719,14 +731,14 @@ class MultiModalFeaturePreprocessor(TransformerMixin, BaseEstimator):
         for label_col in self._label_column:
             y = y_df[label_col]
             if self.column_types[label_col] == CATEGORICAL:
-                y = self._label_generator.transform(y).astype(np.int64)
+                y = self._label_generator[label_col].transform(y).astype(np.int64)
             elif self.column_types[label_col] == NUMERICAL:
                 y = pd.to_numeric(y).to_numpy()
-                y = self._label_scaler.transform(np.expand_dims(y, axis=-1))[:, 0].astype(np.float32)
+                y = self._label_scaler[label_col].transform(np.expand_dims(y, axis=-1))[:, 0].astype(np.float32)
             elif self.label_type == ROIS:
                 y = y_df.to_list()
             elif self.label_type == NER_ANNOTATION:
-                y = self._label_generator.transform(y_df)
+                y = self._label_generator[label_col].transform(y_df)
             else:
                 raise NotImplementedError
             labels[label_col] = y
@@ -789,18 +801,20 @@ class MultiModalFeaturePreprocessor(TransformerMixin, BaseEstimator):
             self._fit_called or self._fit_y_called
         ), "You will need to first call preprocessor.fit_y() before calling preprocessor.transform_label_for_metric."
         y_df = df[self._label_column]
-        if self.label_type == CATEGORICAL:
-            # need to encode to integer labels
-            y = self._label_generator.transform(y_df)
-        elif self.label_type == NUMERICAL:
-            # need to compute the metric on the raw numerical values (no normalization)
-            y = pd.to_numeric(y_df).to_numpy()
-        elif self.label_type == NER_ANNOTATION:
-            x_df = df[self.ner_feature_names[0]]
-            y = self._label_generator.transform_label_for_metric(y_df, x_df, tokenizer)
-        else:
-            raise NotImplementedError
-
+        import pdb; pdb.set_trace()
+        for label_col in self._label_column:
+            if self.label_type == CATEGORICAL:
+                # need to encode to integer labels
+                y_df[label_col] = self._label_generator[label_col].transform(y_df[label_col])
+            elif self.label_type == NUMERICAL:
+                # need to compute the metric on the raw numerical values (no normalization)
+                y = pd.to_numeric(y_df).to_numpy()
+            elif self.label_type == NER_ANNOTATION:
+                x_df = df[self.ner_feature_names[0]]
+                y = self._label_generator[label_col].transform_label_for_metric(y_df, x_df, tokenizer)
+            else:
+                raise NotImplementedError
+        import pdb; pdb.set_trace()
         return y
 
     def transform_prediction(
@@ -808,6 +822,7 @@ class MultiModalFeaturePreprocessor(TransformerMixin, BaseEstimator):
         y_pred: Union[np.ndarray, dict],
         inverse_categorical: bool = True,
         return_proba: bool = False,
+        multi_label: bool = False
     ) -> NDArray:
         """
         Transform model's output logits/probability into class labels for classification
@@ -830,30 +845,47 @@ class MultiModalFeaturePreprocessor(TransformerMixin, BaseEstimator):
             self._fit_called or self._fit_y_called
         ), "You will need to first call preprocessor.fit_y() before calling preprocessor.transform_prediction."
 
-        if self.label_type == CATEGORICAL:
-            assert y_pred.shape[1] >= 2
-            y_pred = y_pred.argmax(axis=1)
-            # Transform the predicted label back to the original space (e.g., string values)
-            if inverse_categorical:
-                y_pred = self._label_generator.inverse_transform(y_pred)
-        elif self.label_type == NUMERICAL:
-            y_pred = self._label_scaler.inverse_transform(y_pred)
-            y_pred = np.squeeze(y_pred)
-            # Convert nan to 0
-            y_pred = np.nan_to_num(y_pred)
-        elif self.label_type == NER_ANNOTATION:
-            y_pred = self._label_generator.inverse_transform(y_pred)
-
-            if return_proba:
-                y_pred = y_pred[-1]
-            else:
+        predicted_labels = []
+        for idx, label_col in enumerate(self._label_column):
+            if self._column_types[label_col] == CATEGORICAL and multi_label:
+                label_preds = (y_pred[:, idx]>0.5).astype(int)
                 if inverse_categorical:
-                    # Return annotations and offsets
-                    y_pred = y_pred[1]
+                    y_pred = self._label_generator[label_col].inverse_transform(label_preds)
+                predicted_labels.append(label_preds)
+
+            elif self._column_types[label_col] == CATEGORICAL and not multi_label:
+                assert y_pred.shape[1] >= 2
+                y_pred = y_pred.argmax(axis=1)
+                # Transform the predicted label back to the original space (e.g., string values)
+                if inverse_categorical:
+                    y_pred = self._label_generator[label_col].inverse_transform(y_pred)
+            elif self.label_type == NUMERICAL and multi_label:
+                # TODO: Handle regression type outputs for numerical labels
+                y_pred = self._label_scaler[label_col].inverse_transform(y_pred)
+                y_pred = np.squeeze(y_pred)
+                # Convert nan to 0
+                y_pred = np.nan_to_num(y_pred)
+            elif self.label_type == NUMERICAL and not multi_label:
+                y_pred = self._label_scaler[label_col].inverse_transform(y_pred)
+                y_pred = np.squeeze(y_pred)
+                # Convert nan to 0
+                y_pred = np.nan_to_num(y_pred)
+            elif self.label_type == NER_ANNOTATION:
+                y_pred = self._label_generator[label_col].inverse_transform(y_pred)
+
+                if return_proba:
+                    y_pred = y_pred[-1]
                 else:
-                    y_pred = y_pred[0]
+                    if inverse_categorical:
+                        # Return annotations and offsets
+                        y_pred = y_pred[1]
+                    else:
+                        y_pred = y_pred[0]
 
-        else:
-            raise NotImplementedError
+            else:
+                raise NotImplementedError
 
-        return y_pred
+            if len(predicted_labels)==0:
+                return y_pred
+            else:
+                return np.array(predicted_labels)
