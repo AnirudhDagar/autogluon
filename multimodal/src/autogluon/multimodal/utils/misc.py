@@ -7,6 +7,7 @@ import re
 import numpy as np
 import pandas as pd
 import torch
+from typing import Optional
 from scipy.special import softmax, expit
 
 from ..constants import AUTOMM
