@@ -2301,7 +2301,8 @@ class MultiModalPredictor(ExportMixin):
                 if isinstance(logits, (torch.Tensor, np.ndarray)) and logits.ndim == 2 and not self._multi_label:
                     pred = logits.argmax(axis=1)
                 else:
-                    pred = logits
+                    import pdb; pdb.set_trace()
+                    pred = torch.sigmoid(logits)
 
             if self._problem_type == NER:
                 pred = merge_bio_format(data[self._df_preprocessor.ner_feature_names[0]], pred)

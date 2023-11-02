@@ -853,6 +853,7 @@ class MultiModalFeaturePreprocessor(TransformerMixin, BaseEstimator):
         import pdb; pdb.set_trace()
         for idx, label_col in enumerate(self._label_column):
             if self._column_types[label_col] == CATEGORICAL and multi_label:
+
                 label_preds = (y_pred[:, idx]>0.5).astype(int)
                 if inverse_categorical:
                     y_pred = self._label_generator[label_col].inverse_transform(label_preds)
