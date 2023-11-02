@@ -850,6 +850,7 @@ class MultiModalFeaturePreprocessor(TransformerMixin, BaseEstimator):
         ), "You will need to first call preprocessor.fit_y() before calling preprocessor.transform_prediction."
 
         predicted_labels = []
+        import pdb; pdb.set_trace()
         for idx, label_col in enumerate(self._label_column):
             if self._column_types[label_col] == CATEGORICAL and multi_label:
                 label_preds = (y_pred[:, idx]>0.5).astype(int)
