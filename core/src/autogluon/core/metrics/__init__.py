@@ -553,8 +553,7 @@ for scorer in [
 
 for scorer in [
     roc_auc,
-    average_precision,
-    multilabel_roc_auc
+    average_precision
 ]:
     _add_scorer_to_metric_dict(metric_dict=BINARY_METRICS, scorer=scorer)
 
