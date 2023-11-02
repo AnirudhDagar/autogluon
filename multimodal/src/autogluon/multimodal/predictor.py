@@ -2097,6 +2097,8 @@ class MultiModalPredictor(ExportMixin):
         if self._problem_type in [BINARY, MULTICLASS]:
             y_pred_prob = logits_to_prob(logits, self._multi_label)
             metric_data[Y_PRED_PROB] = y_pred_prob
+            if self._multi_label:
+                logits = y_pred_prob
 
         y_pred = self._df_preprocessor.transform_prediction(
             y_pred=logits,
