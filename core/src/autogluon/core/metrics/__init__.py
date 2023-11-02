@@ -17,10 +17,7 @@ from ..constants import (
     MULTICLASS,
     QUANTILE,
     REGRESSION,
-    SOFTCLASS,
-    MULTILABEL_BINARY,
-    MULTILABEL_MULTICLASS,
-    MULTILABEL_REGRESSION
+    SOFTCLASS
 )
 from . import classification_metrics, quantile_metrics
 from .classification_metrics import confusion_matrix
@@ -467,6 +464,7 @@ accuracy.add_alias("acc")
 balanced_accuracy = make_scorer("balanced_accuracy", classification_metrics.balanced_accuracy)
 f1 = make_scorer("f1", sklearn.metrics.f1_score)
 mcc = make_scorer("mcc", sklearn.metrics.matthews_corrcoef)
+import torchmetrics
 
 
 # Score functions that need decision values
