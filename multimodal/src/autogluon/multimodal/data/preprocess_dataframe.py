@@ -890,7 +890,7 @@ class MultiModalFeaturePreprocessor(TransformerMixin, BaseEstimator):
             else:
                 raise NotImplementedError
 
-            if len(predicted_labels)==0:
-                return y_pred
-            else:
-                return np.array(predicted_labels)
+        if len(predicted_labels)==0:
+            return y_pred
+        else:
+            return np.array(predicted_labels)
