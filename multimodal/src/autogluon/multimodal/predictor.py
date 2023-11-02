@@ -2287,12 +2287,13 @@ class MultiModalPredictor(ExportMixin):
                 for r_type in ret_type:
                     logits.append(extract_from_output(outputs=outputs, ret_type=r_type))
             else:
-                logits = extract_from_output(outputs=outputs, ret_type=ret_type)
+                logits = extract_from_output(outputs=outputs, ret_type=ret_type, multi_label=self._multi_label)
 
             if self._df_preprocessor:
                 if ret_type == BBOX:
                     pred = logits
                 else:
+                    import pdb; pdb.set_trace()
                     pred = self._df_preprocessor.transform_prediction(
                         y_pred=logits,
                         multi_label=self._multi_label
@@ -2430,7 +2431,7 @@ class MultiModalPredictor(ExportMixin):
                     return_proba=True,
                 )
             else:
-                logits = extract_from_output(outputs=outputs, ret_type=LOGITS)
+                logits = extract_from_output(outputs=outputs, ret_type=LOGITS, multi_label=self._multi_label)
                 prob = logits_to_prob(logits)
 
         if not as_multiclass:
