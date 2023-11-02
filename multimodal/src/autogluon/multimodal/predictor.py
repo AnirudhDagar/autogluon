@@ -205,7 +205,7 @@ class MultiModalPredictor(ExportMixin):
         match_label: Optional[Union[int, str]] = None,
         pipeline: Optional[str] = None,
         presets: Optional[str] = None,
-        # Eval metric can be only one
+        # Right now Eval metric can be only one
         # eval_metric: Optional[Union[str, List[str]]] = None,
         eval_metric: Optional[Union[str, Scorer]] = None,
         hyperparameters: Optional[dict] = None,
@@ -1691,6 +1691,7 @@ class MultiModalPredictor(ExportMixin):
                             prefix=prefix,
                             strict=strict_loading,
                         )
+                        import pdb; pdb.set_trace()
                         best_score = self.evaluate(val_df, metrics=[validation_metric_name])[validation_metric_name]
                         for i in range(1, len(top_k_model_paths)):
                             cand_avg_state_dict = average_checkpoints(

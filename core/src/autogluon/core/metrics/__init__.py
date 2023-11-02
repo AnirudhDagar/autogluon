@@ -12,7 +12,16 @@ try:
 except:
     from sklearn.metrics.classification import _check_targets, type_of_target
 
-from ..constants import BINARY, MULTICLASS, QUANTILE, REGRESSION, SOFTCLASS
+from ..constants import (
+    BINARY,
+    MULTICLASS,
+    QUANTILE,
+    REGRESSION,
+    SOFTCLASS,
+    MULTILABEL_BINARY,
+    MULTILABEL_MULTICLASS,
+    MULTILABEL_REGRESSION
+)
 from . import classification_metrics, quantile_metrics
 from .classification_metrics import confusion_matrix
 
@@ -474,7 +483,6 @@ recall = make_scorer("recall", sklearn.metrics.recall_score)
 # Register other metrics
 quadratic_kappa = make_scorer("quadratic_kappa", classification_metrics.quadratic_kappa, needs_proba=False)
 
-
 def customized_log_loss(y_true, y_pred, eps=1e-15):
     """
 
@@ -548,6 +556,7 @@ for scorer in [
 for scorer in [
     roc_auc,
     average_precision,
+    multilabel_roc_auc
 ]:
     _add_scorer_to_metric_dict(metric_dict=BINARY_METRICS, scorer=scorer)
 
