@@ -2091,16 +2091,12 @@ class MultiModalPredictor(ExportMixin):
             requires_label=True,
             realtime=realtime,
         )
-        logits = extract_from_output(ret_type=ret_type, outputs=outputs)
+        logits = extract_from_output(ret_type=ret_type, outputs=outputs, multi_label=self._multi_label)
 
         metric_data = {}
         if self._problem_type in [BINARY, MULTICLASS]:
-            if not self._multi_label:
-                y_pred_prob = logits_to_prob(logits)
-                metric_data[Y_PRED_PROB] = y_pred_prob
-            else:
-                y_pred_prob = logits
-                metric_data[Y_PRED_PROB] = y_pred_prob
+            y_pred_prob = logits_to_prob(logits, self._multi_label)
+            metric_data[Y_PRED_PROB] = y_pred_prob
 
         y_pred = self._df_preprocessor.transform_prediction(
             y_pred=logits,

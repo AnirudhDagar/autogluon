@@ -7,14 +7,14 @@ import re
 import numpy as np
 import pandas as pd
 import torch
-from scipy.special import softmax
+from scipy.special import softmax, expit
 
 from ..constants import AUTOMM
 
 logger = logging.getLogger(__name__)
 
 
-def logits_to_prob(logits: np.ndarray):
+def logits_to_prob(logits: np.ndarray, multi_label: Optional[bool] = False):
     """
     Convert logits to probabilities.
 
@@ -27,8 +27,11 @@ def logits_to_prob(logits: np.ndarray):
     -------
     Probabilities.
     """
-    assert logits.ndim == 2
-    prob = softmax(logits, axis=1)
+    if not multi_label:
+        assert logits.ndim == 2
+        prob = softmax(logits, axis=1)
+    else:
+        prob = expit(logits)
     return prob
 
 

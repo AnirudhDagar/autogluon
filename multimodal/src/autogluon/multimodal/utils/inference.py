@@ -46,7 +46,7 @@ from .misc import tensor_to_ndarray
 logger = logging.getLogger(__name__)
 
 
-def extract_from_output(outputs: List[Dict], ret_type: str, as_ndarray: Optional[bool] = True, multi_label: Optional[bool] = False):
+def extract_from_output(outputs: List[Dict], ret_type: str, as_ndarray: Optional[bool] = True):
     """
     Extract desired information, e.g., logits or features, from a list of model outputs.
     Support returning a concatenated tensor/ndarray or a dictionary of tensors/ndarrays.
@@ -67,9 +67,6 @@ def extract_from_output(outputs: List[Dict], ret_type: str, as_ndarray: Optional
     if ret_type == LOGITS:
         logits = [ele[LOGITS] for ele in outputs]
         ret = torch.cat(logits).nan_to_num(nan=-1e4)
-        if multi_label:
-            # sigmoid over the logits
-            ret = torch.sigmoid(ret)
     elif ret_type == PROBABILITY:
         probability = [ele[PROBABILITY] for ele in outputs]
         ret = torch.cat(probability).nan_to_num(nan=0)
